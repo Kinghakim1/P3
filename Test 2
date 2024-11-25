@@ -1,0 +1,3 @@
+echo The World is Yours!
+which ls
+exit
