@@ -72,21 +72,13 @@ Command* parse_command(char* input) {
 
 // Enhanced `cd` with debugging
 int builtin_cd(Command* cmd) {
-    // Debugging: Print tokens for troubleshooting
-    fprintf(stderr, "Debug: cmd->token_count = %d\n", cmd->token_count);
-    for (int i = 0; i < cmd->token_count; i++) {
-        fprintf(stderr, "Debug: cmd->tokens[%d] = %s\n", i, cmd->tokens[i]);
-    }
-
     // Handle "cd" without arguments (default to $HOME)
     if (cmd->token_count == 1) {
         char* home = getenv("HOME");
         if (!home) {
-            fprintf(stderr, "Debug: HOME environment variable is not set.\n");
             fprintf(stderr, "cd: HOME environment variable not set\n");
             return 1;
         }
-        fprintf(stderr, "Debug: HOME = %s\n", home); // Print home directory for debugging
         if (chdir(home) != 0) {
             perror("cd");
             return 1;
@@ -96,7 +88,6 @@ int builtin_cd(Command* cmd) {
 
     // Handle "cd" with one argument
     if (cmd->token_count == 2) {
-        fprintf(stderr, "Debug: Changing directory to %s\n", cmd->tokens[1]);
         if (chdir(cmd->tokens[1]) != 0) {
             perror("cd");
             return 1;
@@ -105,7 +96,6 @@ int builtin_cd(Command* cmd) {
     }
 
     // Handle "cd" with too many arguments
-    fprintf(stderr, "Debug: Too many arguments provided to cd.\n");
     fprintf(stderr, "cd: expected one argument\n");
     return 1;
 }
@@ -237,19 +227,38 @@ void free_command(Command* cmd) {
 // Main function
 int main(int argc, char* argv[]) {
     char input[MAX_INPUT_SIZE];
-    int interactive = isatty(STDIN_FILENO);
 
+    // Check if we're in interactive mode (input comes from terminal)
+    int interactive = (isatty(STDIN_FILENO) && argc == 1); // Interactive if no arguments and input is from terminal
+
+    // Print welcome message only in interactive mode
     if (interactive) {
         printf("Welcome to my shell!\n");
     }
 
+    // If batch mode, open the file (if any) and redirect input
+    FILE *input_file = NULL;
+    if (argc == 2) {
+        input_file = fopen(argv[1], "r");
+        if (input_file == NULL) {
+            perror("Error opening file");
+            return 1;
+        }
+    }
+
     while (1) {
+        // Print prompt in interactive mode
         if (interactive) {
             printf("mysh> ");
             fflush(stdout);
         }
 
-        if (fgets(input, sizeof(input), stdin) == NULL) break;
+        // Read input using fgets (or read for non-interactive)
+        if (input_file) {
+            if (fgets(input, sizeof(input), input_file) == NULL) break;
+        } else {
+            if (fgets(input, sizeof(input), stdin) == NULL) break;
+        }
 
         if (input[0] == '\n') continue;
 
@@ -259,16 +268,8 @@ int main(int argc, char* argv[]) {
             continue;
         }
 
-        int result = cmd->is_builtin
-            ? execute_builtin(cmd)
-            : execute_external_command(cmd, interactive);
-
-        free_command(cmd);
+        // Check for the exit command
+        if (strcmp(cmd->tokens[0], "exit") == 0) {
+        }
     }
-
-    if (interactive) {
-        printf("mysh: exiting\n");
-    }
-
-    return 0;
-}
+}        

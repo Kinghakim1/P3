@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -g
 TARGET = myshell
-SRCS = myshell.c
+SRCS = mysh.c
 OBJS = $(SRCS:.c=.o)
 
 all: $(TARGET)
