@@ -10,7 +10,6 @@
 
 #define MAX_INPUT_SIZE 1024
 #define MAX_TOKENS 64
-#define MAX_TOKEN_LENGTH 256
 #define SEARCH_PATHS_COUNT 3
 
 // Search paths for executables
@@ -70,9 +69,8 @@ Command* parse_command(char* input) {
     return cmd;
 }
 
-// Enhanced `cd` with debugging
+// Enhanced `cd` command
 int builtin_cd(Command* cmd) {
-    // Handle "cd" without arguments (default to $HOME)
     if (cmd->token_count == 1) {
         char* home = getenv("HOME");
         if (!home) {
@@ -86,7 +84,6 @@ int builtin_cd(Command* cmd) {
         return 0;
     }
 
-    // Handle "cd" with one argument
     if (cmd->token_count == 2) {
         if (chdir(cmd->tokens[1]) != 0) {
             perror("cd");
@@ -95,13 +92,13 @@ int builtin_cd(Command* cmd) {
         return 0;
     }
 
-    // Handle "cd" with too many arguments
     fprintf(stderr, "cd: expected one argument\n");
     return 1;
 }
 
 // Handle the `pwd` command
 int builtin_pwd(Command* cmd) {
+    (void)cmd; // Mark the parameter as unused to suppress warnings
     char cwd[1024];
     if (getcwd(cwd, sizeof(cwd)) != NULL) {
         printf("%s\n", cwd);
@@ -130,12 +127,6 @@ int builtin_which(Command* cmd) {
 
 // Handle the `exit` command
 int builtin_exit(Command* cmd) {
-    // Print any arguments
-    if (cmd->token_count > 1) {
-        for (int i = 1; i < cmd->token_count; i++) {
-            printf("%s%s", cmd->tokens[i], i < cmd->token_count - 1 ? " " : "\n");
-        }
-    }
     printf("mysh: exiting\n");
     exit(0);
 }
@@ -228,8 +219,8 @@ void free_command(Command* cmd) {
 int main(int argc, char* argv[]) {
     char input[MAX_INPUT_SIZE];
 
-    // Check if we're in interactive mode (input comes from terminal)
-    int interactive = (isatty(STDIN_FILENO) && argc == 1); // Interactive if no arguments and input is from terminal
+    // Check if we're in interactive mode
+    int interactive = (isatty(STDIN_FILENO) && argc == 1);
 
     // Print welcome message only in interactive mode
     if (interactive) {
@@ -253,7 +244,7 @@ int main(int argc, char* argv[]) {
             fflush(stdout);
         }
 
-        // Read input using fgets (or read for non-interactive)
+        // Read input from file or standard input
         if (input_file) {
             if (fgets(input, sizeof(input), input_file) == NULL) break;
         } else {
@@ -263,13 +254,27 @@ int main(int argc, char* argv[]) {
         if (input[0] == '\n') continue;
 
         Command* cmd = parse_command(input);
-        if (cmd->token_count == 0) {
+        if (!cmd || cmd->token_count == 0) {
             free_command(cmd);
             continue;
         }
 
-        // Check for the exit command
-        if (strcmp(cmd->tokens[0], "exit") == 0) {
+        // Check for built-in or external commands
+        if (cmd->is_builtin) {
+            execute_builtin(cmd);
+        } else {
+            execute_external_command(cmd, interactive);
         }
+
+        free_command(cmd);
     }
-}        
+
+    if (input_file) fclose(input_file);
+
+    // Print goodbye message in interactive mode
+    if (interactive) {
+        printf("mysh: exiting\n");
+    }
+
+    return 0;
+}
