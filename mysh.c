@@ -280,6 +280,7 @@ int builtin_cd(Command* cmd) {
 }
 
 int builtin_pwd(Command* cmd) {
+    (void)cmd;
     char cwd[1024];
     if (getcwd(cwd, sizeof(cwd)) != NULL) {
         printf("%s\n", cwd);
