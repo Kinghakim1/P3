@@ -138,6 +138,8 @@ void handle_pipeline(Command* cmd1, Command* cmd2) {
     waitpid(pid2, NULL, 0);
 }
 
+
+
 // Parse Command with Redirection and Pipeline Support
 Command* parse_command(char* input) {
     Command* cmd = malloc(sizeof(Command));
@@ -196,6 +198,8 @@ Command* parse_command(char* input) {
 
     return cmd;
 }
+
+
 
 // Find Executable
 char* find_executable(const char* cmd) {
